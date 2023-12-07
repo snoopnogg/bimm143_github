@@ -1,0 +1,316 @@
+---
+title: "Class 10: Comparative analysis of structures"
+author: "Natalie Ogg A91030809"
+format: pdf
+---
+
+We need some packages for today's class" `bio3d` and `msa`. 
+
+```{r}
+library(bio3d)
+```
+
+The `msa` package is from BioConductor. These packages focus on genomics work and are managed by the `BiocManager` package. 
+
+`install.packages("BiocManager")`
+then:
+`BiocManager::install("msa")`
+
+```{r}
+library(bio3d)
+
+aa <- get.seq("1ake_A")
+aa
+```
+
+## Q10. Which of the packages above is found only on BioConductor and not CRAN? 
+msa
+
+
+## Q11. Which of the above packages is not found on BioConductor or CRAN?: 
+devtools
+
+
+## Q12. True or False? Functions from the devtools package can be used to install packages from GitHub and BitBucket?
+TRUE
+
+## Q13. How many amino acids are in this sequence, i.e. how long is this sequence? 
+214
+
+
+Now I can search the PDB database for related sequences:
+
+```{r}
+#b <- blast.pdb(aa)
+```
+
+
+
+```{r}
+#hits <- plot(b)
+```
+
+
+```{r}
+#attributes(b)
+#head(b$hit.tbl)
+```
+```{r}
+#hits$pdb.id
+
+hits <- NULL
+hits$pdb.id <- c('1AKE_A','6S36_A','6RZE_A','3HPR_A','1E4V_A','5EJE_A','1E4Y_A','3X2S_A','6HAP_A','6HAM_A','4K46_A','3GMT_A','4PZL_A')
+```
+
+Side-note: Let's annotate these structure (aka, find out what they are, which species they're from, info about the experiments involved, etc.)
+
+For this, we use `pdb.annotate()` 
+
+```{r}
+anno <- pdb.annotate(hits$pdb.id)
+attributes(anno)
+head(anno)
+```
+
+Now we can download all these related structures for further analysis witht he `get.pdb()` function. 
+```{r}
+# Download related PDB files
+files <- get.pdb(hits$pdb.id, path="pdbs", split=TRUE, gzip=TRUE)
+```
+
+
+
+Now we can…
+
+
+# Align and Superpose structures
+
+Next we will use the pdbaln() function to align and also optionally fit (i.e. superpose) the identified PDB structures.
+
+```{r}
+# Align related PDBs
+pdbs <- pdbaln(files, fit = TRUE, exefile="msa")
+pdbs
+```
+
+
+
+# Principal Component Analysis
+
+```{r}
+pc.xray <- pca(pdbs)
+plot(pc.xray)
+```
+(One PC captured 85.3%, two 96%, etc.)
+
+
+```{r}
+# Visualize first principal component
+pc1 <- mktrj(pc.xray, pc=1, file="pc_1.pdb")
+pc1
+```
+
+
+# Class 11: AlphaFold2 protein visualization and analysis
+
+
+## HIV Pr Monomer
+![](new_monomer.png)
+
+## HIV Pr Dimer
+
+### Custom analysis of resulting models
+
+```{r}
+results_dir <- "new_dimer_23119_0"
+# File names for all PDB models
+pdb_files <- list.files(path=results_dir,
+                        pattern="*.pdb",
+                        full.names = TRUE)
+pdb_files
+```
+
+```{r}
+library(bio3d)
+
+# Read all data from Models 
+#  and superpose/fit coords
+
+pdbs <- pdbaln(pdb_files, fit=TRUE, exefile="msa")
+```
+```{r}
+pdbs
+```
+
+```{r}
+rd <- rmsd(pdbs)
+
+range(rd)
+```
+
+```{r}
+library(pheatmap)
+
+colnames(rd) <- paste0("m",1:5)
+rownames(rd) <- paste0("m",1:5)
+pheatmap(rd)
+```
+
+```{r}
+# Read a reference PDB structure
+pdb <- read.pdb("1hsg")
+```
+
+```{r}
+plotb3(pdbs$b, typ="l", lwd=2, sse=pdb)
+points(pdbs$b[2,], typ="l", col="red")
+points(pdbs$b[3,], typ="l", col="blue")
+points(pdbs$b[4,], typ="l", col="darkgreen")
+points(pdbs$b[5,], typ="l", col="orange")
+abline(v=100, col="gray")
+```
+
+```{r}
+core <- core.find(pdbs)
+core.inds <- print(core, vol=0.5)
+```
+
+
+```{r}
+xyz <- pdbfit(pdbs, core.inds, outpath="corefit_structures")
+```
+
+HIV Pr Dimer
+
+(First image has more superposition)
+
+
+![](new new dimer pic.png)
+![](dimerpic.png)
+
+
+
+```{r}
+rd <- rmsd(xyz)
+
+# Change the names for easy reference
+colnames(rd) <- paste0("m",1:5)
+rownames(rd) <- paste0("m",1:5)
+pheatmap(rd)
+```
+
+```{r}
+rf <- rmsf(xyz)
+
+plotb3(rf, sse=pdb)
+abline(v=100, col="gray", ylab="RMSF")
+```
+
+
+# Predicted Alignment Error for domains
+
+```{r}
+library(jsonlite)
+
+# Listing of all PAE JSON files
+pae_files <- list.files(path=results_dir,
+                        pattern=".*model.*\\.json",
+                        full.names = TRUE)
+```
+
+
+Here's an example using the first and fifth files:
+
+```{r}
+pae1 <- read_json(pae_files[1],simplifyVector = TRUE)
+pae5 <- read_json(pae_files[5],simplifyVector = TRUE)
+
+attributes(pae1)
+```
+
+
+```{r}
+# Per-residue pLDDT scores 
+#  same as B-factor of PDB..
+head(pae1$plddt) 
+```
+
+Now we pull the max PAE values for each:
+
+```{r}
+pae1$max_pae
+pae5$max_pae
+```
+
+Lower is better, so model 1 is better than 5. 
+
+
+Now we plot:
+
+```{r}
+plot.dmat(pae1$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)")
+```
+
+```{r}
+plot.dmat(pae5$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)",
+          grid.col = "black",
+          zlim=c(0,30))
+```
+
+```{r}
+plot.dmat(pae1$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)",
+          grid.col = "black",
+          zlim=c(0,30))
+```
+
+
+
+# Residue conservation from alignment file
+
+
+```{r}
+aln_file <- list.files(path=results_dir,
+                       pattern=".a3m$",
+                        full.names = TRUE)
+aln_file
+```
+
+```{r}
+aln <- read.fasta(aln_file[1], to.upper = TRUE)
+```
+
+Number of sequences:
+```{r}
+dim(aln$ali)
+```
+
+```{r}
+sim <- conserv(aln)
+plotb3(sim[1:99], sse=trim.pdb(pdb, chain="A"))
+```
+
+```{r}
+con <- consensus(aln, cutoff = 0.9)
+con$seq
+```
+
+The D, T, G, A are conserved active site residues. 
+
+```{r}
+m1.pdb <- read.pdb(pdb_files[1])
+occ <- vec2resno(c(sim[1:99], sim[1:99]), m1.pdb$atom$resno)
+write.pdb(m1.pdb, o=occ, file="m1_conserv.pdb")
+```
+
+In this image, conserved areas are in darker purple: 
+
+
+![](M1_CONSERV.PDB.png)
+
+

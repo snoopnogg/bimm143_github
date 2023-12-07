@@ -1,0 +1,260 @@
+---
+title: "Class07"
+author: "Natalie Ogg, A91030809"
+format: pdf
+---
+
+# Clustering
+
+We will start today's lab with clustering methods, in particular so-called K-means. The main function for this in R is `kmeans()`.
+
+Let's try it on some made up data where we know what the answer should be. 
+
+```{r}
+x <- rnorm(10000)
+hist(x)
+```
+
+`rnorm()` returns random values
+
+60 points
+```{r}
+tmp <- c(rnorm(30, mean=3), rnorm(30, -3))
+x <- cbind(x=tmp, y=rev(tmp))
+head(x)
+```
+
+
+We can pass this to the base R `plot()` function for a quick look:
+```{r}
+plot(x)
+```
+
+
+Now let's see if kmean recognizes the 2 clusters we see above.
+```{r}
+k <- kmeans(x, centers = 2, nstart = 20)
+k
+```
+
+
+>Q1. How many points are in each cluster?
+
+```{r}
+k$size
+```
+
+>Q2. Cluster membership?
+
+```{r}
+k$cluster
+```
+
+
+
+>Q3. Cluster centers?
+
+```{r}
+k$centers
+```
+
+
+>Q4. Plot my clustering results
+
+```{r}
+plot(x, col=k$cluster, pch=16)
+```
+
+
+>Q5. Cluster the data again into 4 groups and plot the results.
+
+```{r}
+k4 <- kmeans(x, centers=4)
+k4
+```
+
+
+```{r}
+plot(x, col=k4$cluster, pch=16)
+```
+
+K-means is very popular mostly because it is fast and relatively straightforward to run and understand. It has a big limitation that you need to tell it how many groups (k, or centers) you want. 
+
+
+# Hierarchical clustering
+
+The main function in base R is `hclust()`. You have to pass it in a "distance matrix" not just your input data. 
+
+You generate this matrix with the `dist()` function
+
+```{r}
+hc <- hclust(dist(x))
+```
+
+```{r}
+plot(hc)
+```
+
+To find clusters (cluster membership vector) from an `hclust()` result, we can cut the tree at a certain height that we like using the `cutree()` function. 
+
+
+```{r}
+plot(hc)
+abline(h=8, col='red')
+grps <- cutree(hc, h=8)
+```
+
+```{r}
+table(grps)
+```
+
+
+Q6. Plot our hclust results 
+```{r}
+plot(x, col=grps, pch=16)
+
+
+```
+
+# Principal Component Analysis
+
+
+
+
+## PCA of UK food data
+
+Read data showing the consumption in grams (per person, per week) of 17 different types of food-stuff measured and averaged in the four countries of the United Kingdom in 1997.
+
+Let's see how PCA can help us but first we can try conventional analysis. 
+
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url)
+x
+```
+
+
+Q1. How many rows and columns are in your new data frame named x? What R functions could you use to answer this questions?
+
+## Complete the following code to find out how many rows and columns are in x?
+
+```{r}
+dim(x)
+
+```
+A: 17 rows, 5 columns
+
+
+## Preview the first 6 rows
+```{r}
+head(x)
+```
+
+We need to assign the character values in column1 (x) to be the rownames, then delete  column1 so only the rownames are left where they should be. 
+```{r}
+row.names(x) <- x[,1]
+x <- x[,-1]
+x
+```
+```{r}
+dim(x)
+```
+
+Q2. Which approach to solving the ‘row-names problem’ mentioned above do you prefer and why? Is one approach more robust than another under certain circumstances?
+
+  The approach I used is risky because if you enter the wrong values you could erase data on accident. 
+  
+  The better way to do it would be assigning x to row names right off the bat:
+```{r}
+x <- read.csv(url, row.names=1)
+head(x)
+```
+
+
+```{r}
+barplot(as.matrix(x), beside=T, col=rainbow(nrow(x)))
+```
+
+
+Q3: Changing what optional argument in the above barplot() function results in the following plot?
+
+By setting `beside = FALSE`
+```{r}
+barplot(as.matrix(x), beside=F, col=rainbow(nrow(x)))
+```
+
+
+
+Q5: Generating all pairwise plots may help somewhat. Can you make sense of the following code and resulting figure? What does it mean if a given point lies on the diagonal for a given plot?
+
+
+```{r}
+pairs(x, col=rainbow(10), pch=16)
+```
+Each plot is a comparison of two countries. If a dot lies on the diagonal, then the two countries being compared have equal consumption for the food represented by that point. If a dot is further to one side of the diagonal, the food it represents is more conumed by the country on that side. The closer points are to a perfect diagonal for a given plot, the more similar the consumption is in those two countries.  
+
+## PCA - Principal Component Analysis
+
+PCA can help us make sense of these datasets. 
+
+The main function in base R is `prcomp()`
+
+
+```{r}
+head(x)
+```
+
+
+We want switch the variables, so the countries are the rows and the foods are the columns. We transpose this dataset using function `t()`. 
+
+```{r}
+head( t(x))
+```
+
+
+```{r}
+pca <- prcomp(t(x))
+summary(pca)
+```
+
+Proportion of variance in each PCA captures more of the variance, and it accumulates as you go along from PC1 to PC3 being 1.00000
+
+
+
+```{r}
+pca$x
+```
+You don't need all the data, you can just compare these PCAs and their variance.
+
+```{r}
+plot( pca$x[,1], pca$x[,2], col=c("orange", "red", "blue", "darkgreen"), pch=16, xlab="PC1", ylab="PC2", xlim=c(-270,500)) 
+text(pca$x[,1], pca$x[,2], colnames(x), col=c("orange", "red", "blue", "darkgreen"))
+```
+
+
+
+```{r}
+v <- round( pca$sdev^2/sum(pca$sdev^2) * 100 )
+v
+```
+
+```{r}
+z <- summary(pca)
+z$importance
+```
+
+Here we summarize the variances in a bar plot 
+```{r}
+barplot(v, xlab="Principal Component", ylab="Percent Variation")
+```
+
+Then we focus on PC1 (as it accounts for > 90% of variance)
+```{r}
+par(mar=c(10, 3, 0.35, 0))
+barplot( pca$rotation[,1], las=2 )
+```
+
+
+
+
