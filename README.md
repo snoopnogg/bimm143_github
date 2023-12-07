@@ -1,6 +1,6 @@
 # BIOINFORMATICS CLASSWORK  
 
-Fall '23 work for [BIMM 143](https://bioboot.github.io/bimm143_F23/) at UC San Diego.  
+My work from [BIMM 143](https://bioboot.github.io/bimm143_F23/) at UC San Diego.  
 
 - Class 05: [Data exploration and visualization in R](https://github.com/snoopnogg/bimm143_github/blob/main/class05/class05.pdf)
 
