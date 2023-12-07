@@ -1,0 +1,231 @@
+---
+title: "Class06: Writing Functions"
+author: Natalie Ogg A91030809
+format: pdf
+---
+
+#Functions in R
+
+We can make functions to read data, compute things, plot things, etc.
+Always start by getting a working snippet of code before you tackle the function.
+
+
+# Gradebook Project
+
+Goal: Create a function to calculate grades for a whole class. First, we want to create a snippet of code that doesn what we want. 
+
+Example: input vectors to start with
+```{r}
+student1 <- c(100, 100, 100, 100, 100, 100, 100, 90)
+student2 <- c(100, NA, 90, 90, 90, 90, 97, 80)
+student3 <- c(90, NA, NA, NA, NA, NA, NA, NA)
+```
+
+Calculate average for student1 using `mean` fxn
+```{r}
+mean(student1)
+```
+Find the lowest grade using `min` fxn
+```{r}
+min(student1)
+```
+
+Locate that min value using `which.min()` 
+```{r}
+which.min(student1)
+```
+
+Minus sign is used to exclude the designated element
+```{r}
+student1[-which.min(student1)]
+```
+
+Now, you can get the mean with the lowest grde dropped
+```{r}
+mean(student1[-which.min(student1)])
+```
+
+But for student2 with an NA…
+```{r}
+mean(student2[-which.min(student2)])
+```
+
+Doesn't work!
+
+Use `na.rm = TRUE` to exclude the NA elements
+```{r}
+mean(student2, na.rm = TRUE)
+```
+
+But student3 has many NAs
+```{r}
+mean(student3, na.rm = TRUE)
+```
+
+However, this is only using one grade for the mean, which isn't fair because all other assignments were missing. 
+
+We want to drop only 1 NA value and assign 0 to the others.
+
+To make this faster, we can assign a shorter variable to the student, ie `x`
+
+```{r}
+x <- student2
+```
+
+
+Assigning a value of 0 to all elements of x where the value is NA:
+1. `is.na(x)` tells you whether `x` elements are NA
+2. `x[is.na(x)]` calls all elements where`is.na(x)` is TRUE
+3. Assign those NA elements 0
+
+```{r}
+x[is.na(x)] <- 0
+
+x
+```
+```{r}
+mean(x[-which.min(x)])
+```
+
+Applying this to student3:
+pt1
+```{r}
+x <- student3
+x[is.na(x)] <- 0
+x
+```
+pt2
+```{r}
+mean(x[-which.min(x)])
+```
+
+Making a function:
+```{r}
+grade <- function(x) {
+  x[is.na(x)] <- 0
+  mean(x[-which.min(x)]) 
+}
+```
+
+Testing it out:
+```{r}
+grade(student1)
+```
+
+Final results for grades:
+```{r}
+grade(student1)
+grade(student2)
+grade(student3)
+```
+
+
+Q1. Write a function grade() to determine an overall grade from a vector of student homework
+assignment scores dropping the lowest single score. If a student misses a homework (i.e. has an
+NA value) this can be used as a score to be potentially dropped. Your final function should be
+adquately explained with code comments and be able to work on an example class gradebook
+such as this one in CSV format: “https://tinyurl.com/gradeinput” [3pts]
+
+My function:
+```{r}
+grade <- function(x) {
+  x[is.na(x)] <- 0
+  mean(x[-which.min(x)]) 
+}
+```
+
+Opening gradebook:
+```{r}
+gradebook <- read.csv("https://tinyurl.com/gradeinput",
+                      row.names=1)
+gradebook
+```
+
+
+Using `apply` to input the data (gradebook matrix), margins (1 = apply by rows), function (`grade`): 
+```{r}
+scores <- apply(gradebook, 1, grade)
+scores
+```
+
+Q2. Using your grade() function and the supplied gradebook, Who is the top scoring student
+overall in the gradebook? [3pts]
+
+```{r}
+
+which.max(scores)
+
+```
+
+Q3. From your analysis of the gradebook, which homework was toughest on students (i.e. obtained
+the lowest scores overall? [2pts]
+
+Use mask to make copy of gradebook for eliminating NAs.
+```{r}
+mask <- gradebook
+
+mask[is.na(mask)] <- 0
+hw.avg <- apply(mask, 2, mean)
+hw.avg
+which.min(hw.avg)
+```
+
+
+
+*below is INCORRECT: using grade drops the lowest, and we want all data*
+```{r}
+hw_grades <- apply(gradebook, 2, grade)
+
+hw_grades
+
+which.min(hw_grades)
+```
+
+
+
+Q4. Optional Extension: From your analysis of the gradebook, which homework was most
+predictive of overall score (i.e. highest correlation with average grade score)? [1pt]
+
+Using apply: 
+```{r}
+
+apply(mask, 2, cor, y=scores)
+
+which.max(apply(mask, 2, cor, y=scores))
+
+```
+
+```{r}
+mask
+```
+
+
+
+Alternate method: 
+```{r}
+correlation <- cor(scores, mask, use = "complete.obs")
+
+correlation
+
+which.max(correlation)
+```
+
+
+
+
+
+Q5. Make sure you save your Quarto document and can click the “Render” (or Rmarkdown”Knit”) button to generate a PDF foramt report without errors. Finally, submit your PDF
+to gradescope. [1pt]
+
+
+
+
+
+
+
+
+
+
+
+
+

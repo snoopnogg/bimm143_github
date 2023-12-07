@@ -1,0 +1,39 @@
+---
+title: "Class 06 Homework"
+format: pdf
+---
+Section 1: Improving analysis code by writing functions
+
+# A. Can you improve this analysis code?
+```{r}
+df <- data.frame(a=1:10, b=seq(200,400,length=10),c=11:20,d=NA)
+df$a <- (df$a - min(df$a)) / (max(df$a) - min(df$a))
+df$b <- (df$b - min(df$b)) / (max(df$b) - min(df$b))
+df$c <- (df$c - min(df$c)) / (max(df$c) - min(df$c))
+df$d <- (df$d - min(df$d)) / (max(df$d) - min(df$d)) 
+```
+
+First use x where possible to simplify
+
+`x <- (x - min(x)) / (max(x) - min(x))`
+
+
+
+…then add range function (column 1=min, 2=max)
+
+`rng <- range(x)`
+`x <- (x - rng[1]) / (rng[2] - rng[1])`
+
+Here is the full rescale function, which will redistribute a data set "x" across a scale from 0 to 1, dropping the lowest value in vector x then dividing by the range. 
+```{r}
+rescale <- function(x) {
+  rng <- range(x)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+rescale(1:10)
+
+```
+
+
+
